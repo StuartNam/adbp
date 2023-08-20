@@ -811,7 +811,7 @@ def main(args):
             if args.train_text_encoder:
                 text_encoder_cache.append(batch["input_ids"])
             else:
-                text_encoder_cache.append(text_encoder(batch["input_ids"])[0])
+                text_encoder_cache.append(text_encoder(batch["input_ids"])[0].to(accelerator.device))
     train_dataset = LatentsDataset(latents_cache, text_encoder_cache)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, collate_fn=lambda x: x, shuffle=True)
     scaling_factor = vae.config.scaling_factor
