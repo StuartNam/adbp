@@ -1,9 +1,9 @@
-export MODEL_PATH="stable-diffusion/stable-diffusion-2-1-base"
+export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
 export INSTANCE_DIR="data/n000050/"
 export CLASS_DIR="data/class-person"
 export DREAMBOOTH_OUTPUT_DIR="dreambooth-outputs/n000050/"
 
-accelerate launch train_dreambooth.py \
+accelerate launch adb/train_dreambooth.py \
   --pretrained_model_name_or_path=$MODEL_PATH  \
   --enable_xformers_memory_efficient_attention \
   --train_text_encoder \

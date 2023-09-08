@@ -578,10 +578,10 @@ def main(args):
     logging_dir = Path(args.output_dir, args.logging_dir)
 
     accelerator = Accelerator(
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        mixed_precision=args.mixed_precision,
-        log_with=args.report_to,
-        logging_dir=logging_dir,
+        gradient_accumulation_steps = args.gradient_accumulation_steps,
+        mixed_precision = args.mixed_precision,
+        log_with = args.report_to,
+        logging_dir = logging_dir,
     )
 
     # Currently, it's not possible to do gradient accumulation when training two models with accelerate.accumulate
@@ -595,11 +595,11 @@ def main(args):
 
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO,
+        format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt = "%m/%d/%Y %H:%M:%S",
+        level = logging.INFO,
     )
-    logger.info(accelerator.state, main_process_only=False)
+    logger.info(accelerator.state, main_process_only = False)
     if accelerator.is_local_main_process:
         datasets.utils.logging.set_verbosity_warning()
         transformers.utils.logging.set_verbosity_warning()
@@ -635,7 +635,11 @@ def main(args):
                 revision=args.revision,
             )
             pipeline.set_progress_bar_config(disable=True)
-            pipeline.enable_xformers_memory_efficient_attention()
+            
+            # Fixed: enable_xformers_memory_efficient_attention is only available for GPU
+            if accelerator.device == "cuda":
+                pipeline.enable_xformers_memory_efficient_attention()
+
             pipeline.disable_attention_slicing()
 
             num_new_images = args.num_class_images - cur_class_images
@@ -649,8 +653,8 @@ def main(args):
 
             for example in tqdm(
                 sample_dataloader,
-                desc="Generating class images",
-                disable=not accelerator.is_local_main_process,
+                desc = "Generating class images",
+                disable = not accelerator.is_local_main_process,
             ):
                 images = pipeline(example["prompt"]).images
 
@@ -696,11 +700,14 @@ def main(args):
 
     # Load scheduler and models
     noise_scheduler = DDPMScheduler.from_pretrained(args.pretrained_model_name_or_path, subfolder="scheduler")
+
+    # Fixed: Put text_encoder to device
     text_encoder = text_encoder_cls.from_pretrained(
         args.pretrained_model_name_or_path,
         subfolder="text_encoder",
         revision=args.revision,
-    )
+    ).to(accelerator.device)
+
     vae = AutoencoderKL.from_pretrained(args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision)
     unet = UNet2DConditionModel.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="unet", revision=args.revision
@@ -811,7 +818,7 @@ def main(args):
             if args.train_text_encoder:
                 text_encoder_cache.append(batch["input_ids"])
             else:
-                text_encoder_cache.append(text_encoder(batch["input_ids"])[0].to(accelerator.device))
+                text_encoder_cache.append(text_encoder(batch["input_ids"])[0])
     train_dataset = LatentsDataset(latents_cache, text_encoder_cache)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, collate_fn=lambda x: x, shuffle=True)
     scaling_factor = vae.config.scaling_factor
