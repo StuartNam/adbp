@@ -543,7 +543,7 @@ def get_full_repo_name(model_id: str, organization: Optional[str] = None, token:
 
 def infer(checkpoint_path, prompts=None, n_img=16, bs=8, n_steps=100, guidance_scale=7.5):
     pipe = StableDiffusionPipeline.from_pretrained(
-        checkpoint_path, torch_dtype=torch.bfloat16, safety_checker=None
+        checkpoint_path, torch_dtype=torch.float16, safety_checker=None
     ).to("cuda")
     pipe.enable_xformers_memory_efficient_attention()
     pipe.disable_attention_slicing()

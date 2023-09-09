@@ -27,4 +27,5 @@ accelerate launch train_dreambooth.py \
   --center_crop \
   --mixed_precision=fp16 \
   --prior_generation_precision=fp16 \
-  --sample_batch_size=8
+  --sample_batch_size=8 \
+  --resume_from_checkpoint="dreambooth_outputs/n000050/checkpoint-500"
