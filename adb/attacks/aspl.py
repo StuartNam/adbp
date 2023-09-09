@@ -744,6 +744,7 @@ def main(args):
         f_sur = copy.deepcopy(f)
 
         # 2. Train db on clean images
+        print(clean_data[0])
         f_sur = train_one_epoch(
             args,
             f_sur,
