@@ -420,7 +420,7 @@ def train_one_epoch(
             device, dtype = weight_dtype
         )
 
-        input_ids = torch.cat([step_data["instance_prompt_ids"], step_data["class_prompt_ids"]], dim=0).to(device)
+        input_ids = torch.cat([step_data["instance_prompt_ids"], step_data["class_prompt_ids"]], dim = 0).to(device)
 
         latents = vae.encode(pixel_values).latent_dist.sample()
         latents = latents * vae.config.scaling_factor
