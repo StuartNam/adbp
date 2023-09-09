@@ -411,8 +411,8 @@ def parse_args(input_args=None):
 
 class DreamBoothDataset(Dataset):
     """
-    A dataset to prepare the instance and class images with the prompts for fine-tuning the model.
-    It pre-processes the images and the tokenizes prompts.
+            A dataset to prepare the instance and class images with the prompts for fine-tuning the model.
+        It pre-processes the images and the tokenizes prompts.
     """
 
     def __init__(
@@ -578,7 +578,11 @@ class LatentsDataset(Dataset):
 
 def main(args):
     logging_dir = Path(args.output_dir, args.logging_dir)
+    accelerator.print(f"main(): Logging into '{logging_dir}'")
 
+    """
+        1. Prepare <accelerator>   
+    """
     accelerator = Accelerator(
         gradient_accumulation_steps = args.gradient_accumulation_steps,
         mixed_precision = args.mixed_precision,
@@ -594,7 +598,7 @@ def main(args):
             "Gradient accumulation is not supported when training the text encoder in distributed training. "
             "Please set gradient_accumulation_steps to 1. This feature will be supported in the future."
         )
-
+    
     # Make one log on every process with the configuration for debugging.
     logging.basicConfig(
         format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s",

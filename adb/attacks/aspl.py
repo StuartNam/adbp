@@ -570,20 +570,25 @@ def pgd_attack(
 
 
 def main(args):
+    """
+        1. Prepare accelerator    
+    """
     logging_dir = Path(args.output_dir, args.logging_dir)
 
     accelerator = Accelerator(
-        mixed_precision=args.mixed_precision,
-        log_with=args.report_to,
-        logging_dir=logging_dir,
+        mixed_precision = args.mixed_precision,
+        log_with = args.report_to,
+        project_dir = logging_dir,
     )
 
     logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO,
+        format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+        datefmt = "%m/%d/%Y %H:%M:%S",
+        level = logging.INFO,
     )
-    logger.info(accelerator.state, main_process_only=False)
+
+    logger.info(accelerator.state, main_process_only = False)
+
     if accelerator.is_local_main_process:
         datasets.utils.logging.set_verbosity_warning()
         transformers.utils.logging.set_verbosity_warning()
@@ -596,28 +601,34 @@ def main(args):
     if args.seed is not None:
         set_seed(args.seed)
 
-    # Generate class images if prior preservation is enabled.
+    """
+        2. Generate class images to ./data/class-person/ if not enough
+    """
     if args.with_prior_preservation:
         class_images_dir = Path(args.class_data_dir)
         if not class_images_dir.exists():
-            class_images_dir.mkdir(parents=True)
+            class_images_dir.mkdir(parents = True)
+
         cur_class_images = len(list(class_images_dir.iterdir()))
 
         if cur_class_images < args.num_class_images:
             torch_dtype = torch.float16 if accelerator.device.type == "cuda" else torch.float32
+
             if args.mixed_precision == "fp32":
                 torch_dtype = torch.float32
             elif args.mixed_precision == "fp16":
                 torch_dtype = torch.float16
             elif args.mixed_precision == "bf16":
                 torch_dtype = torch.bfloat16
+
             pipeline = DiffusionPipeline.from_pretrained(
                 args.pretrained_model_name_or_path,
-                torch_dtype=torch_dtype,
-                safety_checker=None,
-                revision=args.revision,
+                torch_dtype = torch_dtype,
+                safety_checker = None,
+                revision = args.revision,
             )
-            pipeline.set_progress_bar_config(disable=True)
+            
+            pipeline.set_progress_bar_config(disable = True)
 
             num_new_images = args.num_class_images - cur_class_images
             logger.info(f"Number of class images to sample: {num_new_images}.")
@@ -630,44 +641,48 @@ def main(args):
 
             for example in tqdm(
                 sample_dataloader,
-                desc="Generating class images",
-                disable=not accelerator.is_local_main_process,
+                desc = "Generating class images",
+                disable = not accelerator.is_local_main_process,
             ):
                 images = pipeline(example["prompt"]).images
 
                 for i, image in enumerate(images):
                     hash_image = hashlib.sha1(image.tobytes()).hexdigest()
-                    image_filename = class_images_dir / f"{example['index'][i] + cur_class_images}-{hash_image}.jpg"
+                    image_filename = class_images_dir / f"{example['index'][i] + cur_class_images} - {hash_image}.jpg"
                     image.save(image_filename)
 
             del pipeline
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
+    """
+        3. Prepare training components
+    """
     # import correct text encoder class
     text_encoder_cls = import_model_class_from_model_name_or_path(args.pretrained_model_name_or_path, args.revision)
 
     # Load scheduler and models
     text_encoder = text_encoder_cls.from_pretrained(
         args.pretrained_model_name_or_path,
-        subfolder="text_encoder",
-        revision=args.revision,
+        subfolder = "text_encoder",
+        revision = args.revision,
     )
+
     unet = UNet2DConditionModel.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="unet", revision=args.revision
+        args.pretrained_model_name_or_path, subfolder = "unet", revision = args.revision
     )
 
     tokenizer = AutoTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
-        subfolder="tokenizer",
-        revision=args.revision,
-        use_fast=False,
+        subfolder = "tokenizer",
+        revision = args.revision,
+        use_fast = False,
     )
 
     noise_scheduler = DDPMScheduler.from_pretrained(args.pretrained_model_name_or_path, subfolder="scheduler")
 
     vae = AutoencoderKL.from_pretrained(
-        args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision
+        args.pretrained_model_name_or_path, subfolder = "vae", revision = args.revision
     ).cuda()
 
     vae.requires_grad_(False)
@@ -678,16 +693,20 @@ def main(args):
     if args.allow_tf32:
         torch.backends.cuda.matmul.allow_tf32 = True
 
+    # Load reference clean dataset: ./data/<ID>/setA/
     clean_data = load_data(
         args.instance_data_dir_for_train,
-        size=args.resolution,
-        center_crop=args.center_crop,
+        size = args.resolution,
+        center_crop = args.center_crop,
     )
+
+    # Load going-to-be-pertubed dataset: ./data/<ID>/setB/
     perturbed_data = load_data(
         args.instance_data_dir_for_adversarial,
-        size=args.resolution,
-        center_crop=args.center_crop,
+        size = args.resolution,
+        center_crop = args.center_crop,
     )
+
     original_data = perturbed_data.clone()
     original_data.requires_grad_(False)
 
@@ -697,6 +716,7 @@ def main(args):
         else:
             raise ValueError("xformers is not available. Make sure it is installed correctly")
 
+    # Load target image for targeted approach
     target_latent_tensor = None
     if args.target_image_path is not None:
         target_image_path = Path(args.target_image_path)
@@ -711,10 +731,16 @@ def main(args):
         )
         target_latent_tensor = target_latent_tensor.repeat(len(perturbed_data), 1, 1, 1).cuda()
 
+    """
+        4. Train
+    """
+
     f = [unet, text_encoder]
     for i in range(args.max_train_steps):
         # 1. f' = f.clone()
         f_sur = copy.deepcopy(f)
+
+        # 2. Train db on clean images
         f_sur = train_one_epoch(
             args,
             f_sur,
@@ -724,6 +750,8 @@ def main(args):
             clean_data,
             args.max_f_train_steps,
         )
+
+        # 3. 
         perturbed_data = pgd_attack(
             args,
             f_sur,
@@ -735,6 +763,8 @@ def main(args):
             target_latent_tensor,
             args.max_adv_train_steps,
         )
+        
+        # 4. Train db on pertubed images
         f = train_one_epoch(
             args,
             f,
@@ -745,19 +775,25 @@ def main(args):
             args.max_f_train_steps,
         )
 
+        # Handle checkpoint saving
+        # - Save pertubed images to ./outputs/ASPL/<ID>_ADVERSARIAL/noise-ckpt
+
         if (i + 1) % args.checkpointing_iterations == 0:
-            save_folder = f"{args.output_dir}/noise-ckpt/{i+1}"
-            os.makedirs(save_folder, exist_ok=True)
+            save_folder = f"{args.output_dir}/noise-ckpt/{i + 1}"
+            os.makedirs(save_folder, exist_ok = True)
+
             noised_imgs = perturbed_data.detach()
             img_names = [
                 str(instance_path).split("/")[-1]
                 for instance_path in list(Path(args.instance_data_dir_for_adversarial).iterdir())
             ]
+
             for img_pixel, img_name in zip(noised_imgs, img_names):
                 save_path = os.path.join(save_folder, f"{i+1}_noise_{img_name}")
                 Image.fromarray(
                     (img_pixel * 127.5 + 128).clamp(0, 255).to(torch.uint8).permute(1, 2, 0).cpu().numpy()
                 ).save(save_path)
+
             print(f"Saved noise at step {i+1} to {save_folder}")
 
 
