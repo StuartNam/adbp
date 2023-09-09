@@ -379,7 +379,7 @@ def train_one_epoch(
     noise_scheduler,
     vae,
     data_tensor: torch.Tensor,
-    num_steps=20,
+    num_steps = 20,
 ):
     # Load the tokenizer
 
@@ -388,10 +388,10 @@ def train_one_epoch(
 
     optimizer = torch.optim.AdamW(
         params_to_optimize,
-        lr=args.learning_rate,
-        betas=(0.9, 0.999),
-        weight_decay=1e-2,
-        eps=1e-08,
+        lr = args.learning_rate,
+        betas = (0.9, 0.999),
+        weight_decay = 1e-2,
+        eps = 1e-08,
     )
 
     train_dataset = DreamBoothDatasetFromTensor(
@@ -417,8 +417,9 @@ def train_one_epoch(
 
         step_data = train_dataset[step % len(train_dataset)]
         pixel_values = torch.stack([step_data["instance_images"], step_data["class_images"]]).to(
-            device, dtype=weight_dtype
+            device, dtype = weight_dtype
         )
+
         input_ids = torch.cat([step_data["instance_prompt_ids"], step_data["class_prompt_ids"]], dim=0).to(device)
 
         latents = vae.encode(pixel_values).latent_dist.sample()
@@ -427,8 +428,9 @@ def train_one_epoch(
         # Sample noise that we'll add to the latents
         noise = torch.randn_like(latents)
         bsz = latents.shape[0]
+
         # Sample a random timestep for each image
-        timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
+        timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device = latents.device)
         timesteps = timesteps.long()
 
         # Add noise to the latents according to the noise magnitude at each timestep
@@ -451,25 +453,26 @@ def train_one_epoch(
 
         # with prior preservation loss
         if args.with_prior_preservation:
-            model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)
-            target, target_prior = torch.chunk(target, 2, dim=0)
+            model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim = 0)
+            target, target_prior = torch.chunk(target, 2, dim = 0) 
 
             # Compute instance loss
-            instance_loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
+            instance_loss = F.mse_loss(model_pred.float(), target.float(), reduction = "mean")
 
             # Compute prior loss
-            prior_loss = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction="mean")
+            prior_loss = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction = "mean")
 
             # Add the prior loss to the instance loss.
             loss = instance_loss + args.prior_loss_weight * prior_loss
 
         else:
-            loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
+            loss = F.mse_loss(model_pred.float(), target.float(), reduction = "mean")
 
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(params_to_optimize, 1.0, error_if_nonfinite=True)
-        optimizer.step()
         optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(params_to_optimize, 1.0, error_if_nonfinite = True)
+        optimizer.step()
+        
         print(
             f"Step #{step}, loss: {loss.detach().item()}, prior_loss: {prior_loss.detach().item()}, instance_loss: {instance_loss.detach().item()}"
         )
