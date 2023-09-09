@@ -385,7 +385,7 @@ def train_one_epoch(
 
     unet, text_encoder = copy.deepcopy(models[0]), copy.deepcopy(models[1])
     params_to_optimize = itertools.chain(unet.parameters(), text_encoder.parameters())
-
+    
     optimizer = torch.optim.AdamW(
         params_to_optimize,
         lr = args.learning_rate,
@@ -404,18 +404,22 @@ def train_one_epoch(
         args.center_crop,
     )
 
-    weight_dtype = torch.float16
+    # Bug: Originally torch.float16 for mixed precision training, but no mixed precision training
+    weight_dtype = torch.float32
     device = torch.device("cuda")
-
-    vae.to(device, dtype=weight_dtype)
-    text_encoder.to(device, dtype=weight_dtype)
-    unet.to(device, dtype=weight_dtype)
-
+    
+    vae.to(device, dtype = weight_dtype)
+    text_encoder.to(device, dtype = weight_dtype)
+    unet.to(device, dtype = weight_dtype)
+    # vae.to(device)
+    # text_encoder.to(device)
+    # unet.to(device)
     for step in range(num_steps):
         unet.train()
         text_encoder.train()
 
         step_data = train_dataset[step % len(train_dataset)]
+
         pixel_values = torch.stack([step_data["instance_images"], step_data["class_images"]]).to(
             device, dtype = weight_dtype
         )
@@ -436,7 +440,7 @@ def train_one_epoch(
         # Add noise to the latents according to the noise magnitude at each timestep
         # (this is the forward diffusion process)
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
-
+        
         # Get the text embedding for conditioning
         encoder_hidden_states = text_encoder(input_ids)[0]
 
@@ -470,7 +474,15 @@ def train_one_epoch(
 
         optimizer.zero_grad()
         loss.backward()
+
+        
+        # for param_group in optimizer.param_groups:
+        #     for param in param_group['params']:
+        #         if param.grad is not None:
+        #             print(param.grad.shape)
+
         torch.nn.utils.clip_grad_norm_(params_to_optimize, 1.0, error_if_nonfinite = True)
+ 
         optimizer.step()
         
         print(
@@ -691,7 +703,10 @@ def main(args):
     vae.requires_grad_(False)
 
     if not args.train_text_encoder:
+        print("### Note: Not going to train text_encoder")
         text_encoder.requires_grad_(False)
+    else:
+        print("### Note: Going to train text_encoder")
 
     if args.allow_tf32:
         torch.backends.cuda.matmul.allow_tf32 = True
@@ -744,7 +759,6 @@ def main(args):
         f_sur = copy.deepcopy(f)
 
         # 2. Train db on clean images
-        print(clean_data[0])
         f_sur = train_one_epoch(
             args,
             f_sur,

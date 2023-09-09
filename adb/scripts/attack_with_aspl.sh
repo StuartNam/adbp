@@ -25,7 +25,6 @@ accelerate launch attacks/aspl.py \
   --with_prior_preservation \
   --prior_loss_weight=1.0 \
   --resolution=512 \
-  --train_text_encoder \
   --train_batch_size=1 \
   --max_train_steps=50 \
   --max_f_train_steps=3 \
@@ -33,7 +32,8 @@ accelerate launch attacks/aspl.py \
   --checkpointing_iterations=10 \
   --learning_rate=5e-7 \
   --pgd_alpha=5e-3 \
-  --pgd_eps=5e-2 
+  --pgd_eps=5e-2
+  # --train_text_encoder=False \
 
 
 # ------------------------- Train DreamBooth on perturbed examples -------------------------
