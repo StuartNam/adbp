@@ -404,7 +404,7 @@ def train_one_epoch(
         args.center_crop,
     )
 
-    weight_dtype = torch.bfloat16
+    weight_dtype = torch.float16
     device = torch.device("cuda")
 
     vae.to(device, dtype=weight_dtype)
@@ -491,7 +491,7 @@ def pgd_attack(
     """Return new perturbed data"""
 
     unet, text_encoder = models
-    weight_dtype = torch.bfloat16
+    weight_dtype = torch.float16
     device = torch.device("cuda")
 
     vae.to(device, dtype=weight_dtype)
@@ -707,7 +707,7 @@ def main(args):
 
         target_image_tensor = torch.from_numpy(target_image).to("cuda", dtype=torch.float32) / 127.5 - 1.0
         target_latent_tensor = (
-            vae.encode(target_image_tensor).latent_dist.sample().to(dtype=torch.bfloat16) * vae.config.scaling_factor
+            vae.encode(target_image_tensor).latent_dist.sample().to(dtype=torch.float16) * vae.config.scaling_factor
         )
         target_latent_tensor = target_latent_tensor.repeat(len(perturbed_data), 1, 1, 1).cuda()
 

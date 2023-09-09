@@ -1,5 +1,5 @@
 export EXPERIMENT_NAME="ASPL"
-export MODEL_PATH="./stable-diffusion/stable-diffusion-2-1-base"
+export MODEL_PATH="./stabilityai/stable-diffusion-2-1-base"
 export CLEAN_TRAIN_DIR="data/n000050/set_A" 
 export CLEAN_ADV_DIR="data/n000050/set_B"
 export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/n000050_ADVERSARIAL"
