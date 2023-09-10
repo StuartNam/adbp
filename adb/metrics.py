@@ -5,6 +5,7 @@ import tqdm
 import numpy as np
 
 from deepface import DeepFace
+from retinaface import RetinaFace
 
 class Accumulator:
     # Accumulator helps with accumulating scalar values. Useful for calculating scores
@@ -42,17 +43,20 @@ class FDFR(Metric):
             image_path = os.path.join(target_folder_path, file)
             
             # Find faces in file using RetinaFace
+            # face_objs = RetinaFace.extract_faces(
+            #     img_path = image_path, 
+            #     align = True
+            # )
+
             try:
-                print(image_path)
+                # print(image_path)
                 face_objs = DeepFace.extract_faces(
                     img_path = image_path, 
-                    target_size = (224, 224), 
-                    detector_backend = 'retinaface'
+                    align = True
                 )
 
             # If there are no faces
-            except:
-                
+            except Exception as e:
                 total_faces -= 1
 
         
@@ -74,8 +78,9 @@ class ISM(Metric):
                     img_path = image_path,
                     model_name = 'ArcFace'
                 )   
-            except:
-                shutil.move(image_path, './dreambooth-outputs/5/checkpoint-1000/dreambooth/invalid/')
+            except Exception as e:
+                pass
+                # print(f"{image_path}: {e}")
             else:
                 face_vector = face_embedding_info[0]['embedding']
                 target_face_vectors.append(face_vector)
@@ -92,8 +97,9 @@ class ISM(Metric):
                     img_path = image_path,
                     model_name = 'ArcFace'
                 )   
-            except:
-                shutil.move(image_path, './dreambooth-outputs/5/checkpoint-1000/dreambooth/invalid/')
+            except Exception as e:
+                pass
+                # print(f"{image_path}: {e}")
             else:
                 face_vector = face_embedding_info[0]['embedding']
                 identity_face_vectors.append(face_vector)
@@ -120,12 +126,19 @@ class ISM(Metric):
 
         return ism
 
+s1 = FDFR.eval('./db_dataset/5/set_A')
+s2 = FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person')
+s3 = FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')
+ism1 = ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person', './db_dataset/5/set_A')
+ism2 = ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', './db_dataset/5/set_A')
+
 print("Set 5: No defense")
 print("- FDFR score")
-print(f". a photo of sks person: {FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person')}")
-print(f". a DSLR portrait of sks person: {FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')}")
-# print("- ISM score")
-# print(f". a photo of sks person: {ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person', './db_dataset/5/set_A')}")
-# print(f". a DSLR portrait of sks person: {ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', './db_dataset/5/set_A')}")
+print(f". Clean set: {s1}")
+print(f". a photo of sks person: {s2}")
+print(f". a DSLR portrait of sks person: {s3}")
+print("- ISM score")
+print(f". a photo of sks person: {ism1}")
+print(f". a DSLR portrait of sks person: {ism2}")
 
         
