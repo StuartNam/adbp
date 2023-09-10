@@ -5,7 +5,6 @@ export CLEAN_ADV_DIR="db_dataset/5/set_B"
 export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/5_ADVERSARIAL"
 export CLASS_DIR="db_dataset/class-person"
 
-
 # ------------------------- Train ASPL on set B -------------------------
 mkdir -p $OUTPUT_DIR
 cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean
@@ -34,7 +33,6 @@ accelerate launch --main_process_port 29051 attacks/aspl.py \
   --pgd_alpha=5e-3 \
   --pgd_eps=5e-2 \
   --train_text_encoder \
-
 
 # ------------------------- Train DreamBooth on perturbed examples -------------------------
 export INSTANCE_DIR="$OUTPUT_DIR/noise-ckpt/50"

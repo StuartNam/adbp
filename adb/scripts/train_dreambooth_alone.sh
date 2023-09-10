@@ -14,7 +14,7 @@ accelerate launch train_dreambooth.py \
   --prior_loss_weight=1.0 \
   --instance_prompt="a photo of sks person" \
   --class_prompt="a photo of person" \
-  --inference_prompt="sks person sitting on a chair;sks person behind the bars" \
+  --inference_prompt="a photo of sks person;a DSLR portrait of sks person" \
   --resolution=512 \
   --train_batch_size=2 \
   --gradient_accumulation_steps=1 \

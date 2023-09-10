@@ -43,7 +43,8 @@ class FDFR(Metric):
             
             # Find faces in file using RetinaFace
             try:
-                DeepFace.extract_faces(
+                print(image_path)
+                face_objs = DeepFace.extract_faces(
                     img_path = image_path, 
                     target_size = (224, 224), 
                     detector_backend = 'retinaface'
@@ -74,7 +75,7 @@ class ISM(Metric):
                     model_name = 'ArcFace'
                 )   
             except:
-                shutil.move(image_path, './data/invalid/')
+                shutil.move(image_path, './dreambooth-outputs/5/checkpoint-1000/dreambooth/invalid/')
             else:
                 face_vector = face_embedding_info[0]['embedding']
                 target_face_vectors.append(face_vector)
@@ -92,7 +93,7 @@ class ISM(Metric):
                     model_name = 'ArcFace'
                 )   
             except:
-                shutil.move(image_path, './data/invalid/')
+                shutil.move(image_path, './dreambooth-outputs/5/checkpoint-1000/dreambooth/invalid/')
             else:
                 face_vector = face_embedding_info[0]['embedding']
                 identity_face_vectors.append(face_vector)
@@ -118,7 +119,13 @@ class ISM(Metric):
         ism = big_accumulator.average()
 
         return ism
-        
 
+print("Set 5: No defense")
+print("- FDFR score")
+print(f". a photo of sks person: {FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person')}")
+print(f". a DSLR portrait of sks person: {FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')}")
+# print("- ISM score")
+# print(f". a photo of sks person: {ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person', './db_dataset/5/set_A')}")
+# print(f". a DSLR portrait of sks person: {ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', './db_dataset/5/set_A')}")
 
         
