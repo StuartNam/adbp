@@ -386,14 +386,24 @@ def train_one_epoch(
     unet, text_encoder = copy.deepcopy(models[0]), copy.deepcopy(models[1])
     params_to_optimize = itertools.chain(unet.parameters(), text_encoder.parameters())
     
-    optimizer = torch.optim.AdamW(
+    # Use Adam 8bits optimizer
+    # optimizer = torch.optim.AdamW(
+    #     params_to_optimize,
+    #     lr = args.learning_rate,
+    #     betas = (0.9, 0.999),
+    #     weight_decay = 1e-2,
+    #     eps = 1e-08,
+    # )
+
+    import bitsandbytes as bnb
+    optimizer = bnb.optim.AdamW8bit(
         params_to_optimize,
         lr = args.learning_rate,
         betas = (0.9, 0.999),
         weight_decay = 1e-2,
         eps = 1e-08,
     )
-
+    
     train_dataset = DreamBoothDatasetFromTensor(
         data_tensor,
         args.instance_prompt,
