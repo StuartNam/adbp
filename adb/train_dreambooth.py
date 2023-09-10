@@ -433,8 +433,7 @@ class DreamBoothDataset(Dataset):
         if not self.instance_data_root.exists():
             raise ValueError(f"Instance {self.instance_data_root} images root doesn't exists.")
 
-        identities_path = list(Path(instance_data_root).iterdir())
-        self.instance_images_path = list(Path(identities_path[0]).iterdir())
+        self.instance_images_path = list(Path(instance_data_root).iterdir())
         print(self.instance_images_path)
         self.num_instance_images = len(self.instance_images_path)
         self.instance_prompt = instance_prompt
@@ -578,7 +577,6 @@ class LatentsDataset(Dataset):
 
 def main(args):
     logging_dir = Path(args.output_dir, args.logging_dir)
-    accelerator.print(f"main(): Logging into '{logging_dir}'")
 
     """
         1. Prepare <accelerator>   
@@ -590,6 +588,7 @@ def main(args):
         project_dir = logging_dir,
     )
 
+    accelerator.print(f"main(): Logging into '{logging_dir}'")
     # Currently, it's not possible to do gradient accumulation when training two models with accelerate.accumulate
     # This will be enabled soon in accelerate. For now, we don't allow gradient accumulation when training two models.
     # TODO (patil-suraj): Remove this check when gradient accumulation with two models is enabled in accelerate.

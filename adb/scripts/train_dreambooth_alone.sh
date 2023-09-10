@@ -1,5 +1,5 @@
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
-export INSTANCE_DIR="data/n000050/"
+export INSTANCE_DIR="data/n000050/set_A/"
 export CLASS_DIR="data/class-person"
 export DREAMBOOTH_OUTPUT_DIR="dreambooth-outputs/n000050/"
 
