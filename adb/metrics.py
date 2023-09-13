@@ -3,9 +3,18 @@ import shutil
 
 import tqdm
 import numpy as np
+import torch
 
 from deepface import DeepFace
 from retinaface import RetinaFace
+
+import logging
+
+logging.basicConfig(
+    filename = './eval/eval.log'
+)
+
+id = '17'
 
 class Accumulator:
     # Accumulator helps with accumulating scalar values. Useful for calculating scores
@@ -34,7 +43,7 @@ class FDFR(Metric):
     def eval(cls, target_folder_path):
         files = os.listdir(target_folder_path)
         num_files = len(files)
-        total_faces = num_files
+        num_failure_cases = 0
 
         if num_files == 0:
             return 0
@@ -57,10 +66,9 @@ class FDFR(Metric):
 
             # If there are no faces
             except Exception as e:
-                total_faces -= 1
+                num_failure_cases += 1
 
-        
-        fdfr = total_faces / num_files
+        fdfr = num_failure_cases / num_files
 
         return fdfr
         
@@ -103,6 +111,29 @@ class ISM(Metric):
             else:
                 face_vector = face_embedding_info[0]['embedding']
                 identity_face_vectors.append(face_vector)
+        
+        # print(identity_face_vectors)
+        def elementwise_avg(lst):
+            if not lst:
+                return []  # Handle an empty input list
+
+            num_lists = len(lst)
+            num_elements = len(lst[0])  # Assuming all sublists have the same length
+
+            # Initialize a list to store the sums of elements
+            sums = [0] * num_elements
+
+            # Calculate the sum of elements in each position
+            for sub_list in lst:
+                for i, element in enumerate(sub_list):
+                    sums[i] += element
+
+            # Calculate the average of each position
+            average = [total / num_lists for total in sums]
+
+            return average
+
+        average_identity_face_vector = elementwise_avg(identity_face_vectors)
 
         def cosine_similarity(vector1, vector2):
             dot_product = np.dot(vector1, vector2)
@@ -110,35 +141,57 @@ class ISM(Metric):
             norm_vector2 = np.linalg.norm(vector2)
             similarity = dot_product / (norm_vector1 * norm_vector2)
             
-            return similarity
+            return (similarity + 1) / 2
 
-        big_accumulator = Accumulator()
-        for target_face_vector in tqdm.tqdm(target_face_vectors, desc = "ISM.eval()", unit = "image"):  
-            small_accumulator = Accumulator()
+        # big_accumulator = Accumulator()
+        # for target_face_vector in tqdm.tqdm(target_face_vectors, desc = "ISM.eval()", unit = "image"):  
+        #     small_accumulator = Accumulator()
 
-            for identity_face_vector in identity_face_vectors:
-                score = cosine_similarity(target_face_vector, identity_face_vector)
-                small_accumulator.accumulate(score)
+        #     for identity_face_vector in identity_face_vectors:
+        #         score = cosine_similarity(target_face_vector, identity_face_vector)
+        #         small_accumulator.accumulate(score)
 
-            big_accumulator.accumulate(small_accumulator.average())
+        #     big_accumulator.accumulate(small_accumulator.average())
 
-        ism = big_accumulator.average()
+        accumulator = Accumulator()
+        for target_face_vector in tqdm.tqdm(target_face_vectors, desc = "ISM.eval()", unit = "image"):
+            score = cosine_similarity(target_face_vector, average_identity_face_vector)
+            accumulator.accumulate(score)
+
+        ism = accumulator.total / len(target_files)
+        # ism = big_accumulator.average()
 
         return ism
 
-s1 = FDFR.eval('./db_dataset/5/set_A')
-s2 = FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person')
-s3 = FDFR.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')
-ism1 = ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_photo_of_sks_person', './db_dataset/5/set_A')
-ism2 = ISM.eval('./dreambooth-outputs/5/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', './db_dataset/5/set_A')
+nodef_f1 = FDFR.eval(f'./dreambooth-outputs/{id}/checkpoint-1000/dreambooth/a_photo_of_sks_person')
+nodef_f2 = FDFR.eval(f'./dreambooth-outputs/{id}/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')
+nodef_i1 = ISM.eval(f'./dreambooth-outputs/{id}/checkpoint-1000/dreambooth/a_photo_of_sks_person', f'./db_dataset/{id}/set_A')
+nodef_i2 = ISM.eval(f'./dreambooth-outputs/{id}/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', f'./db_dataset/{id}/set_A')
 
-print("Set 5: No defense")
+# aspl_f1 = FDFR.eval(f'./outputs/ASPL/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_photo_of_sks_person')
+# aspl_f2 = FDFR.eval(f'./outputs/ASPL/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')
+# aspl_i1 = ISM.eval(f'./outputs/ASPL/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_photo_of_sks_person', f'./db_dataset/{id}/set_A')
+# aspl_i2 = ISM.eval(f'./outputs/ASPL/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', f'./db_dataset/{id}/set_A')
+
+aspl_f1 = FDFR.eval(f'./outputs/ASPL_TEST/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_photo_of_sks_person')
+aspl_f2 = FDFR.eval(f'./outputs/ASPL_TEST/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person')
+aspl_i1 = ISM.eval(f'./outputs/ASPL_TEST/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_photo_of_sks_person', f'./db_dataset/{id}/set_A')
+aspl_i2 = ISM.eval(f'./outputs/ASPL_TEST/{id}/DREAMBOOTH/checkpoint-1000/dreambooth/a_dslr_portrait_of_sks_person', f'./db_dataset/{id}/set_A')
+
+print(f"Set {id}: No defense")
 print("- FDFR score")
-print(f". Clean set: {s1}")
-print(f". a photo of sks person: {s2}")
-print(f". a DSLR portrait of sks person: {s3}")
+print(f". a photo of sks person: {nodef_f1}")
+print(f". a DSLR portrait of sks person: {nodef_f2}")
 print("- ISM score")
-print(f". a photo of sks person: {ism1}")
-print(f". a DSLR portrait of sks person: {ism2}")
+print(f". a photo of sks person: {nodef_i1}")
+print(f". a DSLR portrait of sks person: {nodef_i2}")
+
+print(f"Set {id}: ASPL attacked")
+print("- FDFR score")
+print(f". a photo of sks person: {aspl_f1}")
+print(f". a DSLR portrait of sks person: {aspl_f2}")
+print("- ISM score")
+print(f". a photo of sks person: {aspl_i1}")
+print(f". a DSLR portrait of sks person: {aspl_i2}")
 
         

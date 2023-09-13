@@ -1,8 +1,8 @@
-export EXPERIMENT_NAME="ASPL"
+export EXPERIMENT_NAME="ASPL_TEST"
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
-export CLEAN_TRAIN_DIR="db_dataset/17/set_B" 
-export CLEAN_ADV_DIR="db_dataset/17/set_A"
-export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/ADVERSARIAL"
+export CLEAN_TRAIN_DIR="outputs/ASPL/17A/ADVERSARIAL/noise-ckpt/50" 
+export CLEAN_ADV_DIR="outputs/ASPL/17/ADVERSARIAL/noise-ckpt/50"
+export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/17/ADVERSARIAL"
 export CLASS_DIR="db_dataset/class-person"
 
 # ------------------------- Train ASPL on set B -------------------------
@@ -10,7 +10,7 @@ mkdir -p $OUTPUT_DIR
 cp -r $CLEAN_TRAIN_DIR/ $OUTPUT_DIR/image_clean
 cp -r $CLEAN_ADV_DIR/ $OUTPUT_DIR/image_before_addding_noise
 
-accelerate launch --main_process_port 29052 attacks/aspl.py \
+accelerate launch --main_process_port 29052 attacks/aspl_test.py \
   --pretrained_model_name_or_path=$MODEL_PATH  \
   --enable_xformers_memory_efficient_attention \
   --instance_data_dir_for_train=$CLEAN_TRAIN_DIR \
@@ -36,7 +36,7 @@ accelerate launch --main_process_port 29052 attacks/aspl.py \
 
 # ------------------------- Train DreamBooth on perturbed examples -------------------------
 export INSTANCE_DIR="$OUTPUT_DIR/noise-ckpt/50"
-export DREAMBOOTH_OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/DREAMBOOTH"
+export DREAMBOOTH_OUTPUT_DIR="outputs/$EXPERIMENT_NAME/17/DREAMBOOTH"
 
 accelerate launch train_dreambooth.py \
   --pretrained_model_name_or_path=$MODEL_PATH  \

@@ -1,7 +1,8 @@
+# export ID='17'
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
-export INSTANCE_DIR="db_dataset/5/set_A/"
+export INSTANCE_DIR="db_dataset/$ID/set_A/"
 export CLASS_DIR="db_dataset/class-person"
-export DREAMBOOTH_OUTPUT_DIR="dreambooth-outputs/5/"
+export DREAMBOOTH_OUTPUT_DIR="dreambooth-outputs/$ID/"
 
 accelerate launch train_dreambooth.py \
   --pretrained_model_name_or_path=$MODEL_PATH  \
@@ -23,7 +24,7 @@ accelerate launch train_dreambooth.py \
   --lr_warmup_steps=0 \
   --num_class_images=200 \
   --max_train_steps=1000 \
-  --checkpointing_steps=500 \
+  --checkpointing_steps=1000 \
   --center_crop \
   --mixed_precision=fp16 \
   --prior_generation_precision=fp16 \
