@@ -11,7 +11,7 @@ parser.add_argument(
     type=str,
     default=None,
     required=True,
-    help="Path to pretrained model or model identifier from huggingface.co/models.",
+    help = "Path to pretrained model or model identifier from huggingface.co/models.",
 )
 parser.add_argument(
     "--output_dir",

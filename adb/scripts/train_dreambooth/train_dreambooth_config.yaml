@@ -1,0 +1,46 @@
+general:
+  num_prior_images: 200
+  image_resolution: 512
+  center_crop: True
+  id: 17
+  class: 'person'
+  model_path: 'stabilityai/stable-diffusion-2-1-base'
+  instance_dir: 'db_dataset/<id>/set_A'
+  prior_dir: 'db_dataset/prior/<class>'
+  train_instance_prompt: "a photo of sks person"
+  train_prior_prompt: "a photo of a person"
+  output_dir: 'outputs/<id>'
+  seed: None
+  revision: '' # Revision of pretrained model identifier from huggingface.co/models. Trainable model components should be float32 precision.
+  tokenizer_name: '' # Pretrained tokenizer name or path if not the same as model_name
+  gradient_checkpointing: False
+training:
+  general:
+    enable_xformers_memory_efficient_attention: True
+    train_text_encoder: True
+    train_with_prior_preservation: True
+    resume_from_checkpoint_no: 'latest'
+    lrate_scheduler: 'constant'
+    checkpoint_cycle: 1000 # num epochs until checkpointing
+
+  hyperparameters:
+    lrate: 5e-7
+    batch_size: 2
+    num_epochs: 1000
+    prior_loss_weight: 1.0
+    num_lrate_warmup_steps: 0
+
+  accelerator:
+    num_gradient_accumulation_steps: 1
+    mixed_precision: fp16
+    
+sampling:
+  prior_generation_precision: fp16
+  prior_prompt: "A photo of a person"
+  batch_size: 8
+
+
+
+
+    
+

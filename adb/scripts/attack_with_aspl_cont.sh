@@ -1,5 +1,3 @@
-# export ID="49"
-
 export EXPERIMENT_NAME="ASPL"
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
 export CLEAN_TRAIN_DIR="db_dataset/$ID/set_A" 

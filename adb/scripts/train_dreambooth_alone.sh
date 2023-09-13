@@ -1,4 +1,3 @@
-# export ID='17'
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
 export INSTANCE_DIR="db_dataset/$ID/set_A/"
 export CLASS_DIR="db_dataset/class-person"
