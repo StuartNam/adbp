@@ -1,9 +1,10 @@
+export EXPERIMENT_NAME='DB'
 export MODEL_PATH="stabilityai/stable-diffusion-2-1-base"
 export INSTANCE_DIR="db_dataset/$ID/set_A/"
-export CLASS_DIR="db_dataset/class-person"
-export DREAMBOOTH_OUTPUT_DIR="dreambooth-outputs/$ID/"
+export CLASS_DIR="db_dataset/class_person"
+export DREAMBOOTH_OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/"
 
-accelerate launch train_dreambooth.py \
+accelerate launch ./src/train_dreambooth.py \
   --pretrained_model_name_or_path=$MODEL_PATH  \
   --enable_xformers_memory_efficient_attention \
   --train_text_encoder \

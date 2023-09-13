@@ -1,0 +1,8 @@
+methods: # Each method is a transformation
+  - name: gaussian_blur
+    params:
+      kernel_size: 3
+      sigma: 1.5
+
+chained: True # Chain the methods if True. Else return a list of seperate method
+

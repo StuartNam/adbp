@@ -1,2 +1,5 @@
+export ID=nam
+
 python src/eval.py \
-    --id=$ID
+    --target_dir="outputs/$ID/gb-" \
+    --identity_dir="data/$ID/set_A"

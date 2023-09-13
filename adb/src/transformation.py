@@ -35,53 +35,48 @@ class Transformation():
 
         methods = []
 
-        for method in config.transformation.methods:
+        for method in config.methods:
             if method.name == 'gaussian_blur':
-                methods.append(Transformation.gaussian_blur_2d(method.config))
-            
-            if method.name == 'gaussian_noisify':
-                methods.append(Transformation.gaussian_noisify(method.config))
+                methods.append(Transformation.gaussian_blur_2d(method.params)) 
+            elif method.name == 'gaussian_noisify':
+                methods.append(Transformation.gaussian_noisify(method.params))
+            elif method.name == 'color_convert':
+                methods.append(Transformation.color_convert(method.params))
+            elif method.name == 'rotate':
+                methods.append(Transformation.rotate(method.params)) 
+            elif method.name == 'hflip':
+                methods.append(Transformation.hflip(method.params))     
+            elif method.name == 'vflip':
+                methods.append(Transformation.vflip(method.params))
 
-            if method.name == 'color_convert':
-                methods.append(Transformation.color_convert(method.config))
-            
-            if method.name == 'rotate':
-                methods.append(Transformation.rotate(method.config))
-            
-            if method.name == 'hflip':
-                methods.append(Transformation.hflip(method.config))
-            
-            if method.name == 'vflip':
-                methods.append(Transformation.vflip(method.config))
-
-        if config.transformation.stack:
+        if config.chained:
             return chain(methods)  
         
         return methods
     
     @classmethod
-    def gaussian_blur_2d(cls, config = None):
+    def gaussian_blur_2d(cls, params = None):
         """
         Performing the gaussian blur with kernel_size and sigma
         Args:
-        - config: {'kernel_size': ..., 'sigma': ...}
+        - params: {'kernel_size': ..., 'sigma': ...}
         """
 
-        if config['kernel_size'] == 'random':
+        if params.kernel_size == 'random':
             kernel_size = random.choice([3, 5, 7, 9, 11])
         else:
             try:
-                kernel_size = int(config['kernel_size'])
+                kernel_size = int(params.kernel_size)
             except:
-                print("gaussian_blur_2d(): Kernel size must be able to convert to int")
+                raise RuntimeError("gaussian_blur_2d(): Kernel size must be able to convert to int")
 
-        if config['sigma'] == 'random':
+        if params.sigma == 'random':
             sigma = random.uniform(1.0, 2.0)
         else:
             try:
-                sigma = float(config['sigma'])
+                sigma = float(params.sigma)
             except:
-                print("gaussian_blur_2d(): Sigma must be able to convert to float")
+                raise RuntimeError("gaussian_blur_2d(): Sigma must be able to convert to float")
 
         return kornia.filters.GaussianBlur2d(
             kernel_size = (kernel_size, kernel_size),
@@ -89,7 +84,7 @@ class Transformation():
         )
 
     @classmethod
-    def gaussian_noisify(cls, config = None):
+    def gaussian_noisify(cls, params = None):
         """
             Add Gaussian noise to the image
             Args:
@@ -102,7 +97,7 @@ class Transformation():
         return kornia.augmentation.RandomGaussianNoise(mean = mean, std = std, p = p, same_on_batch = True)
 
     @classmethod
-    def color_convert(cls, config = None):
+    def color_convert(cls, params = None):
         prob = random.uniform(0.0, 1.0)
         if prob > 0.5:
             return kornia.color.RgbToBgr() 
@@ -110,7 +105,7 @@ class Transformation():
         return kornia.color.BgrToRgb()
     
     @classmethod
-    def rotate(cls, config = None):
+    def rotate(cls, params = None):
         """
         Rotate clock-wise
         Args:
@@ -118,20 +113,20 @@ class Transformation():
             - angle: if none -> random angle for define the transform funtion
         """
 
-        if config.angle == 'random':
+        if params.angle == 'random':
             angle = random.randint(0, 360)
             print(f"Random angle = {angle}")
 
-        if not isinstance(config.angle, torch.Tensor):
+        if not isinstance(params.angle, torch.Tensor):
             try:
-                angle = torch.ones(config.batch_size, dtype = torch.float32) * int(config.angle)
+                angle = torch.ones(params.batch_size, dtype = torch.float32) * int(params.angle)
             except:
                 raise RuntimeError("Transformation.rotate(): Batch size is required")
 
         return kornia.geometry.transform.affwarp.Rotate(angle)
 
     @classmethod
-    def hflip(cls, config = None):
+    def hflip(cls, params = None):
         prob = random.uniform(0.0, 1.0)
         if prob > 0.5:
             return kornia.geometry.transform.Hflip()
@@ -139,12 +134,31 @@ class Transformation():
         return lambda x: x 
     
     @classmethod
-    def vflip(cls, config = None):
+    def vflip(cls, params = None):
         prob = random.uniform(0.0, 1.0)
         if prob > 0.5:
             return kornia.geometry.transform.Vflip()
         
         return lambda x: x
+
+    @classmethod
+    def get_pipe_name(cls, config):
+        name = ''
+        for method in config.methods:
+            if method.name == 'gaussian_blur':
+                name += 'gb-'
+            elif method.name == 'gaussian_noisify':
+                name += 'gn-'
+            elif method.name == 'color_convert':
+                name += 'cc-'
+            elif method.name == 'rotate':
+                name += 'rt-'
+            elif method.name == 'hflip':
+                name += 'hf-'
+            elif method.name == 'vflip':
+                name += 'vf-'
+        
+        return name
 
 def main():
     config = OmegaConf.load('config.yaml')

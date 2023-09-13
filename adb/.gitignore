@@ -1,5 +1,6 @@
-dreambooth-outputs/
 data/class-person
 outputs/
 db_dataset/
 eval/
+__pycache__/
+logs/
