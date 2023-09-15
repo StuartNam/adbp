@@ -1,7 +1,7 @@
-export ID=nam
-export TARGET_DIR=data/$ID/set_A
-export OUTPUT_DIR=outputs/$ID
-export CONFIG=config/transform.yaml
+export ID=""
+export TARGET_DIR="outputs/ASPL/5/adversarial/noise-ckpt/50"
+export OUTPUT_DIR="outputs/ASPL/5/adversarial"
+export CONFIG="config/transform.yaml"
 
 python src/transform.py \
     --target_dir=$TARGET_DIR \
