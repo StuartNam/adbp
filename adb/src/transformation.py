@@ -48,12 +48,35 @@ class Transformation():
                 methods.append(Transformation.hflip(method.params))     
             elif method.name == 'vflip':
                 methods.append(Transformation.vflip(method.params))
+            elif method.name == 'motion_blur':
+                methods.append(Transformation.motion_blur(method.params))
 
         if config.chained:
             return chain(methods)  
         
         return methods
     
+    @classmethod
+    def get_pipe_name(cls, config):
+        name = ''
+        for method in config.methods:
+            if method.name == 'gaussian_blur':
+                name += 'gb-'
+            elif method.name == 'gaussian_noisify':
+                name += 'gn-'
+            elif method.name == 'color_convert':
+                name += 'cc-'
+            elif method.name == 'rotate':
+                name += 'rt-'
+            elif method.name == 'hflip':
+                name += 'hf-'
+            elif method.name == 'vflip':
+                name += 'vf-'
+            elif method.name == 'motion_blur':
+                name += 'mb-'
+
+        return name
+
     @classmethod
     def gaussian_blur_2d(cls, params = None):
         """
@@ -142,24 +165,17 @@ class Transformation():
         return lambda x: x
 
     @classmethod
-    def get_pipe_name(cls, config):
-        name = ''
-        for method in config.methods:
-            if method.name == 'gaussian_blur':
-                name += 'gb-'
-            elif method.name == 'gaussian_noisify':
-                name += 'gn-'
-            elif method.name == 'color_convert':
-                name += 'cc-'
-            elif method.name == 'rotate':
-                name += 'rt-'
-            elif method.name == 'hflip':
-                name += 'hf-'
-            elif method.name == 'vflip':
-                name += 'vf-'
-        
-        return name
+    def motion_blur(cls, params = None):
+        return kornia.filters.MotionBlur(
+            kernel_size = params.kernel_size,
+            angle = params.angle,
+            direction = params.direction
+        )
 
+    @classmethod
+    def enhance_brightness(cls, params = None):
+        pass
+    
 def main():
     config = OmegaConf.load('config.yaml')
 

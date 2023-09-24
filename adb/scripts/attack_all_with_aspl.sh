@@ -16,7 +16,7 @@ do
         export ID=$subset_dir
         export CLEAN_TRAIN_DIR="db_dataset/$ID/set_A" 
         export CLEAN_ADV_DIR="db_dataset/$ID/set_B"
-        export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/adversarial"
+        export OUTPUT_DIR="outputs1/$EXPERIMENT_NAME/$ID/adversarial"
 
         # ------------------------- Train ASPL on set B -------------------------
         mkdir -p $OUTPUT_DIR
@@ -48,9 +48,9 @@ do
           --train_text_encoder \
 
         # ------------------------- Train DreamBooth on perturbed examples -------------------------
-        export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/adversarial"
+        export OUTPUT_DIR="outputs1/$EXPERIMENT_NAME/$ID/adversarial"
         export INSTANCE_DIR="$OUTPUT_DIR/noise-ckpt/50"
-        export DREAMBOOTH_OUTPUT_DIR="outputs/$EXPERIMENT_NAME/$ID/dreambooth"
+        export DREAMBOOTH_OUTPUT_DIR="outputs1/$EXPERIMENT_NAME/$ID/dreambooth"
 
         accelerate launch ./src/train_dreambooth.py \
           --id=$id \
@@ -63,7 +63,7 @@ do
           --prior_loss_weight=1.0 \
           --instance_prompt="a photo of sks person" \
           --class_prompt="a photo of person" \
-          --inference_prompt="a photo of sks person;a dslr portrait of sks person" \
+          --inference_prompt="a photo of sks person;a dslr portrait of sks person;a portrait of sks person taken by a dslr camera" \
           --resolution=512 \
           --train_batch_size=2 \
           --gradient_accumulation_steps=1 \

@@ -1,7 +1,11 @@
 import os
 import numpy as np
+import shutil
+
 from deepface import DeepFace
 from tqdm import tqdm
+from brisque import BRISQUE as brs
+from PIL import Image
 
 class Accumulator:
     """
@@ -34,6 +38,7 @@ class FDFR(Metric):
             print("FDFR.eval()")
             print(f"    target_dir = {target_dir}")
             print("----------")
+        
 
         files = os.listdir(target_dir)
         num_files = len(files)
@@ -43,8 +48,11 @@ class FDFR(Metric):
             return 0
         
         for file in tqdm(files, desc = "FDFR.eval()", unit = "image"):
-            image_path = os.path.join(target_dir, file)
+            image_path = f"{target_dir}/{file}"
             
+            if os.path.isdir(image_path):
+                continue
+
             try:
                 DeepFace.extract_faces(
                     img_path = image_path, 
@@ -63,11 +71,11 @@ class FDFR(Metric):
         
 class ISM(Metric):
     @classmethod
-    def eval(cls, target_dir, identity_dir, log_info = False, enable_progress_bar = True):
+    def eval(cls, target_dir, reference_dir, log_info = False, enable_progress_bar = True):
         if log_info:
             print("ISM.eval()")
             print(f"    target_dir = {target_dir}")
-            print(f"    identity_dir = {identity_dir}")
+            print(f"    reference_dir = {reference_dir}")
             print("----------")
 
         target_files = os.listdir(target_dir)
@@ -91,14 +99,14 @@ class ISM(Metric):
                 face_vector = face_embedding_info[0]['embedding']
                 target_face_vectors.append(face_vector)
         
-        identity_files = os.listdir(identity_dir)
+        identity_files = os.listdir(reference_dir)
         num_identity_files = len(identity_files)
         identity_face_vectors = []
         num_face_identity_files = num_identity_files
         no_face_identity_files = []
 
         for file in identity_files:
-            image_path = os.path.join(identity_dir, file)
+            image_path = os.path.join(reference_dir, file)
 
             try:
                 face_embedding_info = DeepFace.represent(
@@ -177,10 +185,52 @@ class ISM(Metric):
 
 class SER_FIQ(Metric):
     @classmethod
-    def eval(self, target_dir):
+    def eval(cls, target_dir):
         return "Not implemented"
 
 class BRISQUE(Metric):
     @classmethod
-    def eval(self, target_dir):
-        return "Not implemented"
+    def eval(cls, target_dir):
+        accumulator = Accumulator()
+        brisque_obj = brs(url = False)
+
+        target_filenames = os.listdir(target_dir)
+        
+        for filename in target_filenames:
+            image_path = f"{target_dir}/{filename}"
+
+            if os.path.isdir(image_path):
+                continue
+            
+            image = Image.open(image_path)
+            image = np.array(image)
+
+            score = brisque_obj.score(image)
+            accumulator.accumulate(score)
+        
+        brisque = accumulator.average()
+
+        return brisque
+
+class IFR(Metric): # Identity and Fidelity Rating
+    """
+        Harmonic mean of ISM and (1 - scale(0, 1)(clamp(0, 100)(BRISQUE))). High when both ISM and (1 - BRISQUE) is high, indicate highly distorted image.
+    """
+    @classmethod
+    def eval(cls, target_dir, reference_dir):
+        ism = ISM.eval(
+            target_dir,
+            reference_dir,
+            enable_progress_bar = False
+        )
+
+        brisque = BRISQUE.eval(target_dir)
+
+        def clamp(n, min_value, max_value):
+            return max(min_value, min(n, max_value))
+
+        brisque = clamp(brisque, 0, 100) / 100
+        
+        ifr = 0 if ism == 0 or brisque == 0 else 2 * ism * (1 - brisque) / (ism + (1 - brisque))
+            
+        return ifr
